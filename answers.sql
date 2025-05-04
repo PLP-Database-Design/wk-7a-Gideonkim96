@@ -1,31 +1,69 @@
--- quiz 1
-SELECT OrderID, CustomerName, TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(Products, ',', n.n), ',', -1)) AS Product
-FROM ProductDetail
-JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) n
-  ON CHAR_LENGTH(Products) - CHAR_LENGTH(REPLACE(Products, ',', '')) >= n.n - 1
-ORDER BY OrderID, n.n;
--- quiz 2
--- Create the Order table
-CREATE TABLE Order (
+-- ✅ Question 1: Achieving 1NF
+
+-- Step 1: Create raw table with multivalued Products (violates 1NF)
+CREATE TABLE ProductDetailRaw (
+    OrderID INT,
+    CustomerName VARCHAR(100),
+    Products VARCHAR(255)
+);
+
+-- Insert initial data with comma-separated products
+INSERT INTO ProductDetailRaw VALUES
+(101, 'John Doe', 'Laptop, Mouse'),
+(102, 'Jane Smith', 'Tablet, Keyboard, Mouse'),
+(103, 'Emily Clark', 'Phone');
+
+-- Step 2: Create normalized table for 1NF
+CREATE TABLE ProductDetail1NF (
+    OrderID INT,
+    CustomerName VARCHAR(100),
+    Product VARCHAR(100)
+);
+
+-- Insert normalized data (each product in its own row)
+INSERT INTO ProductDetail1NF VALUES
+(101, 'John Doe', 'Laptop'),
+(101, 'John Doe', 'Mouse'),
+(102, 'Jane Smith', 'Tablet'),
+(102, 'Jane Smith', 'Keyboard'),
+(102, 'Jane Smith', 'Mouse'),
+(103, 'Emily Clark', 'Phone');
+
+-- View the normalized ProductDetail1NF
+SELECT * FROM ProductDetail1NF;
+
+
+-- ✅ Question 2: Achieving 2NF
+
+-- Step 1: Create Orders table with OrderID and CustomerName
+CREATE TABLE Orders (
     OrderID INT PRIMARY KEY,
     CustomerName VARCHAR(100)
 );
--- Insert data into the Order table:
-  
-INSERT INTO Order (OrderID, CustomerName)
-SELECT DISTINCT OrderID, CustomerName
-FROM OrderDetails;
--- Create the OrderItems table:
-  
+
+-- Insert distinct order-customer mappings
+INSERT INTO Orders VALUES
+(101, 'John Doe'),
+(102, 'Jane Smith'),
+(103, 'Emily Clark');
+
+-- Step 2: Create OrderItems table with OrderID, Product, Quantity
 CREATE TABLE OrderItems (
     OrderID INT,
     Product VARCHAR(100),
     Quantity INT,
-    PRIMARY KEY (OrderID, Product),
-    FOREIGN KEY (OrderID) REFERENCES Order(OrderID)
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
 );
--- Insert data into the OrderItems table:
 
-INSERT INTO OrderItems (OrderID, Product, Quantity)
-SELECT OrderID, Product, Quantity
-FROM OrderDetails;
+-- Insert order-product-quantity data
+INSERT INTO OrderItems VALUES
+(101, 'Laptop', 2),
+(101, 'Mouse', 1),
+(102, 'Tablet', 3),
+(102, 'Keyboard', 1),
+(102, 'Mouse', 2),
+(103, 'Phone', 1);
+
+-- View the normalized tables
+SELECT * FROM Orders;
+SELECT * FROM OrderItems;
